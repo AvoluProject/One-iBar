@@ -1,0 +1,6 @@
+<resources>
+    <item name="oneibar_original_visibility" type="id" />
+    <item name="oneibar_original_clock_size" type="id" />
+    <item name="oneibar_original_clock_typeface" type="id" />
+    <item name="oneibar_original_clock_padding" type="id" />
+</resources>

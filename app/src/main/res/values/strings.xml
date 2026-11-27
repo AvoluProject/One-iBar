@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">One iBar</string>
+    <string name="app_description">iOS 27-inspired SystemUI status bar module</string>
+</resources>
