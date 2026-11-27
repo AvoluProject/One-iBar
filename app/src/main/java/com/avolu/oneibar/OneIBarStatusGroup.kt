@@ -93,7 +93,7 @@ internal class OneIBarStatusGroup(context: Context) : LinearLayout(context) {
         val networkWidth = if (network.visibility == VISIBLE) max(13f, network.text.toString().length * 6.0f * scale) else 0f
         setChildLayout(network, networkWidth, iconHeightDp, gap * 0.65f)
         setChildLayout(wifi, wifiWidth, iconHeightDp, gap)
-        setChildLayout(battery, batteryWidth, iconHeightDp, 0f, config.batteryOffsetDp)
+        setChildLayout(battery, batteryWidth, iconHeightDp, 0f, config.batteryOffsetDp.toFloat())
 
         baseTranslationY = config.verticalOffsetDp * density
         translationY = baseTranslationY
