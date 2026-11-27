@@ -3,4 +3,5 @@
     <item name="oneibar_original_clock_size" type="id" />
     <item name="oneibar_original_clock_typeface" type="id" />
     <item name="oneibar_original_clock_padding" type="id" />
+    <item name="oneibar_original_clock_gravity" type="id" />
 </resources>

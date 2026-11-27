@@ -118,11 +118,29 @@ internal class OneIBarDrawable(
             val clip = canvas.save()
             val capsule = Path().apply { addRoundRect(inset, 6.1f, 6.1f, Path.Direction.CW) }
             canvas.clipPath(capsule)
-            paint.color = if (charging) Color.rgb(38, 174, 91) else tint
+            paint.color = when {
+                charging -> Color.rgb(38, 174, 91)
+                level <= 20 -> Color.rgb(255, 59, 48)
+                else -> tint
+            }
             canvas.drawRect(inset.left, inset.top, fillRight, inset.bottom, paint)
             canvas.restoreToCount(clip)
         }
-        if (showPercent && body.width() > 18f) {
+        if (charging) {
+            // Compact white bolt keeps the charging state legible at status-bar size.
+            val bolt = Path().apply {
+                moveTo(15.0f, 2.8f)
+                lineTo(10.9f, 9.1f)
+                lineTo(13.8f, 9.1f)
+                lineTo(12.0f, 13.8f)
+                lineTo(18.0f, 7.7f)
+                lineTo(15.0f, 7.7f)
+                close()
+            }
+            paint.style = Paint.Style.FILL
+            paint.color = Color.WHITE
+            canvas.drawPath(bolt, paint)
+        } else if (showPercent && body.width() > 18f) {
             paint.color = if (level > 52) Color.WHITE else tint
             paint.textSize = 7.0f
             paint.textAlign = Paint.Align.CENTER

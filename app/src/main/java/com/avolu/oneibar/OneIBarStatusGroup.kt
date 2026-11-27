@@ -36,7 +36,13 @@ internal class OneIBarStatusGroup(context: Context) : LinearLayout(context) {
         contentDescription = "One iBar iOS 27 status indicators"
     }
 
-    fun apply(config: OneIBarConfig, tint: Int) {
+    fun apply(
+        config: OneIBarConfig,
+        tint: Int,
+        hasSignalSource: Boolean,
+        hasWifiSource: Boolean,
+        hasBatterySource: Boolean
+    ) {
         val previousConfig = lastConfig
         val density = resources.displayMetrics.density
         val scale = config.scalePercent / 100f
@@ -48,9 +54,9 @@ internal class OneIBarStatusGroup(context: Context) : LinearLayout(context) {
         val batteryWidth = 30f * scale
         val gap = config.gapDp * scale
 
-        signal.visibility = if (config.showSignal) VISIBLE else GONE
-        wifi.visibility = if (config.showWifi) VISIBLE else GONE
-        battery.visibility = if (config.showBattery) VISIBLE else GONE
+        signal.visibility = if (config.showSignal && hasSignalSource) VISIBLE else GONE
+        wifi.visibility = if (config.showWifi && hasWifiSource) VISIBLE else GONE
+        battery.visibility = if (config.showBattery && hasBatterySource) VISIBLE else GONE
         network.visibility = if (config.showNetworkLabel && config.networkMode != "OFF") VISIBLE else GONE
 
         val isNight = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
@@ -87,7 +93,7 @@ internal class OneIBarStatusGroup(context: Context) : LinearLayout(context) {
         val networkWidth = if (network.visibility == VISIBLE) max(13f, network.text.toString().length * 6.0f * scale) else 0f
         setChildLayout(network, networkWidth, iconHeightDp, gap * 0.65f)
         setChildLayout(wifi, wifiWidth, iconHeightDp, gap)
-        setChildLayout(battery, batteryWidth, iconHeightDp, 0f)
+        setChildLayout(battery, batteryWidth, iconHeightDp, 0f, config.batteryOffsetDp)
 
         baseTranslationY = config.verticalOffsetDp * density
         translationY = baseTranslationY
@@ -97,11 +103,18 @@ internal class OneIBarStatusGroup(context: Context) : LinearLayout(context) {
         invalidate()
     }
 
-    private fun setChildLayout(view: View, widthDp: Float, heightDp: Float, endGapDp: Float) {
+    private fun setChildLayout(
+        view: View,
+        widthDp: Float,
+        heightDp: Float,
+        endGapDp: Float,
+        startGapDp: Float = 0f
+    ) {
         val d = resources.displayMetrics.density
         val params = (view.layoutParams as? LayoutParams) ?: LayoutParams(0, 0)
         params.width = (widthDp * d).toInt().coerceAtLeast(0)
         params.height = (heightDp * d).toInt().coerceAtLeast(0)
+        params.marginStart = (startGapDp * d).toInt()
         params.marginEnd = (endGapDp * d).toInt().coerceAtLeast(0)
         view.layoutParams = params
     }

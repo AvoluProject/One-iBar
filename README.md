@@ -1,10 +1,10 @@
 # One iBar
 
-**One iBar v0.2.0-alpha03** is an experimental libxposed module for Samsung One UI 8+ that replaces the visible status-indicator cluster inside the existing SystemUI view hierarchy with an iOS-27-inspired group.
+**One iBar v0.2.1-alpha04** is an experimental libxposed module for Samsung One UI 8+ that replaces the visible status-indicator cluster inside the existing SystemUI view hierarchy with an iOS-27-inspired group.
 
 It is a real Android/Xposed project, not a screenshot or launcher mock-up. It does **not** create an overlay window, use Accessibility overlays, or patch the SystemUI APK on disk. The module hooks SystemUI lifecycle/update methods and inserts a native `LinearLayout` into a discovered status-icon container, hides the matching stock signal/Wi-Fi/battery views, and draws its own glyphs using Android Canvas.
 
-> **Alpha status:** source package prepared for CI build. It has not yet been compiled with Android SDK/Gradle or tested against a physical Samsung firmware in this environment. Samsung's internal class names and view IDs are not a stable public API. When the module cannot identify a safe container and at least two stock indicator types, it intentionally skips injection rather than modifying an unrelated view.
+> **Alpha status:** CI is configured to compile the debug APK on every push. A successful CI build confirms compilation and packaging only; the hook mapping and appearance still need testing on each Samsung firmware/device. Samsung's internal class names and view IDs are not a stable public API. When the module cannot identify a safe container and at least two stock indicator types, it intentionally skips injection rather than modifying an unrelated view.
 
 ## Design target
 
@@ -12,9 +12,9 @@ The reference target is the supplied **iOS 27** icon style, not iOS 26:
 
 - Four rounded cellular bars with active/inactive levels.
 - Three Wi-Fi arcs and a filled lower glyph.
-- Filled horizontal capsule battery with grey remainder and a right-side cap, without the iOS 26-style outlined shell.
+- Filled horizontal capsule battery with grey remainder and a right-side cap; low battery turns red and charging uses a green fill with a compact bolt.
 - Optional network technology label before the cellular bars: `AUTO`, `4G`, `LTE`, `5G`, `5G+`, or `OFF`.
-- Base proportions are expressed in dp and remain constant across display sizes: 24 dp cellular, 23 dp Wi-Fi, 34 dp battery, 18 dp glyph height, and 6 dp default gap. The module uses Samsung's own status-bar safe-area/container so a center punch-hole, wide notch, or dual cutout does not cause the icon geometry itself to be stretched. Small calibration offsets are available for unusually short status bars or firmware-specific insets.
+- Base proportions are expressed in dp and remain constant across display sizes: 24 dp cellular, 23 dp Wi-Fi, 30 dp battery, 18 dp glyph height, and 6 dp default gap. The module uses Samsung's own status-bar safe-area/container so a center punch-hole, wide notch, or dual cutout does not cause the icon geometry itself to be stretched. Small calibration offsets are available for unusually short status bars or firmware-specific insets.
 - The native Samsung clock text and actual time content are preserved. Optional clock styling adjusts only the clock TextView's font metrics/size; it does not spoof or replace the time.
 
 The group order is: optional network label → cellular signal → Wi-Fi → battery. Battery remains the last/right-most glyph inside this cluster.
@@ -35,6 +35,9 @@ The group order is: optional network label → cellular signal → Wi-Fi → bat
 | Battery position | -4 to +4 dp adjustment, while battery remains last/right-most |
 | Theme | Auto / light / dark glyph tint |
 | Animations | Glyph reveal and status bar / Quick Settings state transitions, 80–360 ms |
+| Presets | Natural / Compact / Bold geometry presets |
+| Profile JSON | Copy and import the complete configuration as JSON |
+| Battery offset | Independent battery position adjustment, applied as layout spacing |
 
 ## How events update
 
@@ -76,15 +79,15 @@ The official modern libxposed API uses `META-INF/xposed/java_init.list`, `scope.
 1. Create a GitHub repository and upload the **contents** of this ZIP to its root.
 2. Commit to `main`.
 3. Open **Actions → Build One iBar**.
-4. Download the `One-iBar-v0.2.0-alpha03-*` artifact. It contains the debug APK and source ZIP; when stable release signing is configured, it also contains a release APK.
+4. Download the `One-iBar-debug-*` artifact for the debug APK. When all four stable-signing secrets are configured, a separate `One-iBar-release-*` artifact is also uploaded.
 
-The workflow uses JDK 17, Gradle 8.11.1, Android platform 36, and Build Tools 36.0.0. It verifies the APK, Xposed entry list, scope list, and module API metadata before uploading the artifacts.
+The workflow uses JDK 17, Gradle 8.14.3, Android platform 36, and Build Tools 36.0.0. It runs source/XML checks before compiling and uploading the APK artifacts.
 
 ## Updating the APK without uninstalling
 
 Android supports an in-place package update when all of the following remain the same: **applicationId**, signing certificate, and a higher `versionCode`.
 
-The project keeps `applicationId = com.avolu.oneibar`; GitHub Actions sets `versionCode` to `2000 + run number`, so each CI build increases the Android version code. For repeatable updates, use the same private signing key for every release build:
+The project keeps `applicationId = com.avolu.oneibar`; GitHub Actions sets `versionCode` to `2100 + run number`, so this alpha line has a higher version code than the earlier 0.2.0 alpha builds. For repeatable updates, use the same private signing key for every release build:
 
 1. Generate a release keystore once and keep a secure backup. Do not commit it to the repository.
 2. Add these repository Actions secrets:

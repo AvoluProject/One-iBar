@@ -1,6 +1,7 @@
 package com.avolu.oneibar
 
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -14,6 +15,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.Button
+import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.SeekBar
@@ -39,7 +41,7 @@ class MainActivity : Activity() {
     private fun loadConfig(): OneIBarConfig {
         val local = prefs.getString("config", null)
         val secure = try { Settings.Secure.getString(contentResolver, OneIBarConfig.SECURE_KEY) } catch (_: Throwable) { null }
-        return OneIBarConfig.fromJson(secure ?: local)
+        return OneIBarConfig.fromJson(local ?: secure)
     }
 
     private fun buildUi() {
@@ -59,7 +61,7 @@ class MainActivity : Activity() {
 
         root.addView(text("One iBar", 30f, true, Color.rgb(18, 18, 22)))
         root.addView(text("iOS 27 Status Bar Engine", 14f, false, Color.rgb(95, 97, 105)))
-        root.addView(text("v0.2.0-alpha03 • SystemUI in-memory view modification", 11f, false, Color.rgb(120, 122, 130)))
+        root.addView(text("v0.2.1-alpha04 • SystemUI in-memory view modification", 11f, false, Color.rgb(120, 122, 130)))
 
         val previewCard = card()
         previewCard.addView(text("LIVE PREVIEW", 10f, true, Color.rgb(125, 127, 135)))
@@ -71,7 +73,7 @@ class MainActivity : Activity() {
         }
         preview.addView(iconPreview(OneIBarDrawable.Kind.CELLULAR, 23, 18))
         preview.addView(iconPreview(OneIBarDrawable.Kind.WIFI, 23, 18).apply { setPadding(dp(5), 0, 0, 0) })
-        preview.addView(iconPreview(OneIBarDrawable.Kind.BATTERY, 34, 18).apply { setPadding(dp(7), 0, 0, 0) })
+        preview.addView(iconPreview(OneIBarDrawable.Kind.BATTERY, 30, 18).apply { setPadding(dp(7), 0, 0, 0) })
         previewCard.addView(preview, marginTop(12))
         previewCard.addView(text("Sinyal  •  Wi‑Fi  •  Baterai kapsul iOS 27", 12f, false, Color.DKGRAY), marginTop(9))
         root.addView(previewCard, marginTop(18))
@@ -111,6 +113,28 @@ class MainActivity : Activity() {
             persistConfig()
         }
 
+        addSection("PRESET TAMPILAN")
+        val presetRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+        }
+        presetRow.addView(button("Natural") {
+            config = config.copy(scalePercent = 100, gapDp = 6, clockScalePercent = 100)
+            persistConfig()
+            recreate()
+        }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        presetRow.addView(button("Compact") {
+            config = config.copy(scalePercent = 92, gapDp = 3, clockScalePercent = 96)
+            persistConfig()
+            recreate()
+        }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        presetRow.addView(button("Bold") {
+            config = config.copy(scalePercent = 110, gapDp = 7, clockScalePercent = 105)
+            persistConfig()
+            recreate()
+        }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        root.addView(presetRow, marginTop(6))
+
         addSection("IOS 27 GEOMETRY")
         addSeek("Skala ikon", config.scalePercent, 85, 115, "%") {
             config = config.copy(scalePercent = it)
@@ -143,9 +167,12 @@ class MainActivity : Activity() {
             config = config.copy(animationMs = it)
             persistConfig()
         }
+        addSection("PROFILE")
+        root.addView(button("SALIN PROFIL JSON") { exportProfile() }, marginTop(6))
+        root.addView(button("IMPOR PROFIL JSON") { importProfile() }, marginTop(6))
         root.addView(button("RESET KE DEFAULT IOS 27") {
             config = OneIBarConfig()
-            prefs.edit().putString("config", config.toJson()).apply()
+            persistConfig()
             Toast.makeText(this, "Pengaturan direset", Toast.LENGTH_SHORT).show()
             recreate()
         }, marginTop(20))
@@ -171,11 +198,44 @@ class MainActivity : Activity() {
                 android.content.pm.PackageManager.PERMISSION_GRANTED
         } catch (_: Throwable) { false }
         statusText.text = when {
-            writeSucceeded == true -> "✓ Izin aktif. Konfigurasi terkirim ke SystemUI dan diterapkan live."
+            writeSucceeded == true -> "✓ Konfigurasi berhasil ditulis. SystemUI akan membaca perubahan saat observer aktif."
             granted -> "Izin terdeteksi. Tekan Terapkan Ulang untuk mengirim konfigurasi."
             else -> "Belum diberi izin WRITE_SECURE_SETTINGS. Salin perintah root di atas, jalankan di Termux, lalu tekan Terapkan Ulang."
         }
         statusText.setTextColor(if (granted) Color.rgb(28, 128, 75) else Color.rgb(165, 90, 35))
+    }
+
+    private fun exportProfile() {
+        val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboard.setPrimaryClip(ClipData.newPlainText("One iBar profile", config.toJson()))
+        Toast.makeText(this, "Profil JSON disalin", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun importProfile() {
+        val editor = EditText(this).apply {
+            setText(config.toJson())
+            minLines = 5
+            maxLines = 9
+            gravity = Gravity.TOP or Gravity.START
+            setTextIsSelectable(true)
+        }
+        AlertDialog.Builder(this)
+            .setTitle("Impor profil One iBar")
+            .setMessage("Tempel JSON profil One iBar di sini.")
+            .setView(editor)
+            .setNegativeButton("Batal", null)
+            .setPositiveButton("Terapkan") { _, _ ->
+                try {
+                    val json = org.json.JSONObject(editor.text.toString())
+                    config = OneIBarConfig.fromJson(json.toString())
+                    persistConfig()
+                    Toast.makeText(this, "Profil berhasil diimpor", Toast.LENGTH_SHORT).show()
+                    recreate()
+                } catch (_: Throwable) {
+                    Toast.makeText(this, "JSON tidak valid", Toast.LENGTH_LONG).show()
+                }
+            }
+            .show()
     }
 
     private fun addSection(title: String) {
@@ -266,10 +326,16 @@ class MainActivity : Activity() {
         includeFontPadding = false
     }
 
-    private fun button(label: String, click: () -> Unit): Button = Button(this).apply {
+    private fun button(
+        label: String,
+        params: LinearLayout.LayoutParams? = null,
+        click: () -> Unit
+    ): Button = Button(this).apply {
         text = label
         isAllCaps = false
+        textSize = 12f
         setOnClickListener { click() }
+        if (params != null) layoutParams = params
     }
 
     private fun rounded(color: Int, radius: Int): GradientDrawable = GradientDrawable().apply {

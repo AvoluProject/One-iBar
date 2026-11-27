@@ -1,5 +1,3 @@
-import java.util.Properties
-
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -22,8 +20,8 @@ android {
         applicationId = "com.avolu.oneibar"
         minSdk = 31
         targetSdk = 35
-        versionCode = 2000 + runNumber
-        versionName = "0.2.0-alpha03"
+        versionCode = 2100 + runNumber
+        versionName = "0.2.1-alpha04"
     }
 
     compileOptions {

@@ -119,7 +119,13 @@ internal object OneIBarSystemUi {
             }
         }
 
-        group.apply(config, tint)
+        group.apply(
+            config = config,
+            tint = tint,
+            hasSignalSource = sources.any { it.kind == SourceKind.CELLULAR },
+            hasWifiSource = sources.any { it.kind == SourceKind.WIFI },
+            hasBatterySource = sources.any { it.kind == SourceKind.BATTERY }
+        )
         groups[group] = true
         sources.forEach { source ->
             if (source.view !== group && !isDescendant(group, source.view)) {
@@ -303,6 +309,7 @@ internal object OneIBarSystemUi {
                 clock.setTag(com.avolu.oneibar.R.id.oneibar_original_clock_size, clock.textSize)
                 clock.setTag(com.avolu.oneibar.R.id.oneibar_original_clock_typeface, clock.typeface)
                 clock.setTag(com.avolu.oneibar.R.id.oneibar_original_clock_padding, clock.includeFontPadding)
+                clock.setTag(com.avolu.oneibar.R.id.oneibar_original_clock_gravity, clock.gravity)
             }
             clock.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14.5f * config.clockScalePercent / 100f)
             clock.typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
@@ -318,9 +325,12 @@ internal object OneIBarSystemUi {
         if (typeface != null) clock.typeface = typeface
         val padding = clock.getTag(com.avolu.oneibar.R.id.oneibar_original_clock_padding) as? Boolean
         if (padding != null) clock.includeFontPadding = padding
+        val gravity = clock.getTag(com.avolu.oneibar.R.id.oneibar_original_clock_gravity) as? Int
+        if (gravity != null) clock.gravity = gravity
         clock.setTag(com.avolu.oneibar.R.id.oneibar_original_clock_size, null)
         clock.setTag(com.avolu.oneibar.R.id.oneibar_original_clock_typeface, null)
         clock.setTag(com.avolu.oneibar.R.id.oneibar_original_clock_padding, null)
+        clock.setTag(com.avolu.oneibar.R.id.oneibar_original_clock_gravity, null)
     }
 
     private data class SourceView(val view: View, val kind: SourceKind)

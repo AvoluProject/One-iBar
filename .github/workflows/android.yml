@@ -1,27 +1,37 @@
 name: Build One iBar
+
 on:
   push:
     branches: [ main, master ]
   workflow_dispatch:
+
 permissions:
   contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+      SIGNING_KEYSTORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
+      SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+      SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+      RELEASE_SIGNING_ENABLED: ${{ secrets.SIGNING_KEYSTORE_BASE64 != '' && secrets.SIGNING_KEYSTORE_PASSWORD != '' && secrets.SIGNING_KEY_ALIAS != '' && secrets.SIGNING_KEY_PASSWORD != '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
+
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.14.3'
-      # GitHub-hosted Ubuntu runners already contain Android command-line tools.
-      # Install only supported packages; do not request the obsolete package "tools".
+
       - name: Install Android SDK packages
         shell: bash
         run: |
@@ -33,14 +43,40 @@ jobs:
           test -x "$SDKMANAGER"
           yes | "$SDKMANAGER" --licenses >/dev/null || true
           "$SDKMANAGER" --install "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+
       - name: Verify source
+        run: bash scripts/verify-source.sh
+
+      - name: Build APKs
+        shell: bash
         run: |
-          if [ -f scripts/verify-source.sh ]; then bash scripts/verify-source.sh; fi
-      - name: Build debug APK
-        run: gradle --no-daemon clean assembleDebug
-      - name: Upload APK
+          set -euo pipefail
+          TASKS=(clean assembleDebug)
+          if [[ -n "${SIGNING_KEYSTORE_BASE64:-}" && -n "${SIGNING_KEYSTORE_PASSWORD:-}" && -n "${SIGNING_KEY_ALIAS:-}" && -n "${SIGNING_KEY_PASSWORD:-}" ]]; then
+            KEYSTORE_PATH="$RUNNER_TEMP/oneibar-release.jks"
+            printf '%s' "$SIGNING_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+            chmod 600 "$KEYSTORE_PATH"
+            export SIGNING_KEYSTORE_PATH="$KEYSTORE_PATH"
+            TASKS+=(assembleRelease)
+            echo "Stable release signing configured."
+          else
+            echo "No stable release keystore configured; building debug APK only."
+          fi
+          gradle --no-daemon "${TASKS[@]}"
+
+      - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
           name: One-iBar-debug-${{ github.run_number }}
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload signed release APK
+        if: ${{ env.RELEASE_SIGNING_ENABLED == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: One-iBar-release-${{ github.run_number }}
+          path: app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+          retention-days: 30
