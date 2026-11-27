@@ -4,7 +4,7 @@
 
     <application
         android:allowBackup="false"
-        android:description="iOS 27-inspired SystemUI status bar customization module"
+        android:description="@string/app_description"
         android:label="One iBar"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
